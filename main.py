@@ -13,77 +13,74 @@ TASKS_PATH = "data/tasks.json"
 try:
     with open(USERS_PATH, "r") as file:
         data = json.load(file)
-        users = []
         for user in data:
-            users.append(User(user["name"], user["email"]))
-except FileNotFoundError:
-    users = []
+            User(user["name"], user["email"])
+except FileNotFoundError as error:
+    print("An exception occurred: ", error)
 try:
     with open(PROJECTS_PATH, "r") as file:
         data = json.load(file)
-        projects = []
         for project in data:
             project_user = [user for user in User.all if user.name == project["assigned_to"]][0]
-            projects.append(Project(project["title"], project["description"], project_user, project["due_date"]))
-except FileNotFoundError:
-    projects = []
+            Project(project["title"], project["description"], project_user, project["due_date"])
+except FileNotFoundError as error:
+    print("An exception occurred: ", error)
 try:
     with open(TASKS_PATH, "r") as file:
         data = json.load(file)
-        tasks = []
         for task in data:
             task_project = [project for project in Project.all if project.title == task["project"]][0]
-            tasks.append(Task(task["title"], task_project, task["status"]))
-except FileNotFoundError:
-    tasks = []
+            Task(task["title"], task_project, task["status"])
+except FileNotFoundError as error:
+    print("An exception occurred: ", error)
 
 # CLI functions
 app = typer.Typer()
 
 @app.command()
 def add_user(name: str, email: str):
-    users.append(User(name, email))
+    User(name, email)
     print(f"User {name} created")
-    fwrite(USERS_PATH, users)
+    fwrite(USERS_PATH, User.all)
 
 @app.command()
 def add_project(title: str, description: str, username: str, due_date: str):
     project_user = [user for user in User.all if user.name == username][0]
-    projects.append(Project(title, description, project_user, due_date))
+    Project(title, description, project_user, due_date)
     print(f"Project '{title}' created and assigned to {username}")
-    fwrite(PROJECTS_PATH, projects)
+    fwrite(PROJECTS_PATH, Project.all)
 
 @app.command()
 def add_task(title: str, projectname: str):
     task_project = [project for project in Project.all if project.title == projectname][0]
-    tasks.append(Task(title, task_project))
+    Task(title, task_project)
     print(f"Task '{title}' created and assigned to '{projectname}'")
-    fwrite(TASKS_PATH, tasks)
+    fwrite(TASKS_PATH, Task.all)
 
 @app.command()
 def list_users():
-    for user in users:
+    for user in User.all:
         print(f"Name: {user.name}, email: {user.email}")
 
 @app.command()
 def list_projects(assignee: str = "all"):
     if assignee == "all":
-        for project in projects:
+        for project in Project.all:
             print(f"{project.title} | {project.description} | Assignee: {project.assigned_to.name} | Due: {project.due_date}")
     else:
         print(f"{assignee}'s projects:")
-        for project in projects:
+        for project in Project.all:
             if project.assigned_to.name == assignee:
                 print(f"{project.title} | {project.description} | Due: {project.due_date}")
 
 @app.command()
 def list_tasks(project: str = "all"):
     if project == "all":
-        for task in tasks:
+        for task in Task.all:
             print(f"{task.title} | Project: {task.project.title} | Status: {task.status}")
     else:
         print(f"Tasks for project '{project}':")
-        for task in tasks:
+        for task in Task.all:
             if task.project.title == project:
                 print(f"{task.title} | Status: {task.status}")
 
@@ -92,6 +89,7 @@ def complete_task(title: str):
     task_to_complete = [task for task in Task.all if task.title == title][0]
     task_to_complete.complete()
     print(f"{title} completed!")
-
+    fwrite(TASKS_PATH, Task.all)
+    
 if __name__ == "__main__":
     app()
