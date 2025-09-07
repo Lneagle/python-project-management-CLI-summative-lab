@@ -16,23 +16,23 @@ try:
         for user in data:
             User(user["name"], user["email"])
 except FileNotFoundError as error:
-    print("An exception occurred: ", error)
+    pass
 try:
     with open(PROJECTS_PATH, "r") as file:
         data = json.load(file)
         for project in data:
-            project_user = [user for user in User.all if user.name == project["assigned_to"]][0]
+            project_user = User.all.get(project["assigned_to"])
             Project(project["title"], project["description"], project_user, project["due_date"])
 except FileNotFoundError as error:
-    print("An exception occurred: ", error)
+    pass
 try:
     with open(TASKS_PATH, "r") as file:
         data = json.load(file)
         for task in data:
-            task_project = [project for project in Project.all if project.title == task["project"]][0]
+            task_project = Project.all.get(task["project"])
             Task(task["title"], task_project, task["status"])
 except FileNotFoundError as error:
-    print("An exception occurred: ", error)
+    pass
 
 # CLI functions
 app = typer.Typer()
@@ -45,51 +45,66 @@ def add_user(name: str, email: str):
 
 @app.command()
 def add_project(title: str, description: str, username: str, due_date: str):
-    project_user = [user for user in User.all if user.name == username][0]
-    Project(title, description, project_user, due_date)
-    print(f"Project '{title}' created and assigned to {username}")
-    fwrite(PROJECTS_PATH, Project.all)
+    project_user = User.all.get(username)
+    if project_user:
+        Project(title, description, project_user, due_date)
+        print(f"Project '{title}' created and assigned to {username}")
+        fwrite(PROJECTS_PATH, Project.all)
+    else:
+        print(f"{username} does not exist. Project not created.")
 
 @app.command()
 def add_task(title: str, projectname: str):
-    task_project = [project for project in Project.all if project.title == projectname][0]
-    Task(title, task_project)
-    print(f"Task '{title}' created and assigned to '{projectname}'")
-    fwrite(TASKS_PATH, Task.all)
+    task_project = Project.all.get(projectname)
+    if (task_project):
+        Task(title, task_project)
+        print(f"Task '{title}' created and assigned to '{projectname}'")
+        fwrite(TASKS_PATH, Task.all)
+    else:
+        print(f"{projectname} does not exist. Task not created.")
 
 @app.command()
 def list_users():
-    for user in User.all:
+    for user in User.all.values():
         print(f"Name: {user.name}, email: {user.email}")
 
 @app.command()
 def list_projects(assignee: str = "all"):
     if assignee == "all":
-        for project in Project.all:
+        for project in Project.all.values():
             print(f"{project.title} | {project.description} | Assignee: {project.assigned_to.name} | Due: {project.due_date}")
     else:
-        print(f"{assignee}'s projects:")
-        for project in Project.all:
-            if project.assigned_to.name == assignee:
+        user = User.all.get(assignee)
+        if (user):
+            print(f"{assignee}'s projects:")
+            for project in user.projects():
                 print(f"{project.title} | {project.description} | Due: {project.due_date}")
+        else:
+            print(f"{assignee} not found")
 
 @app.command()
 def list_tasks(project: str = "all"):
     if project == "all":
-        for task in Task.all:
+        for task in Task.all.values():
             print(f"{task.title} | Project: {task.project.title} | Status: {task.status}")
     else:
-        print(f"Tasks for project '{project}':")
-        for task in Task.all:
-            if task.project.title == project:
+        proj = Project.all.get(project)
+        if (proj):
+            print(f"Tasks for project '{project}':")
+            for task in proj.tasks():
                 print(f"{task.title} | Status: {task.status}")
+        else:
+            print(f"{project} not found")
 
 @app.command()
 def complete_task(title: str):
-    task_to_complete = [task for task in Task.all if task.title == title][0]
-    task_to_complete.complete()
-    print(f"{title} completed!")
-    fwrite(TASKS_PATH, Task.all)
-    
+    task_to_complete = Task.all.get(title)
+    if (task_to_complete):
+        task_to_complete.complete()
+        print(f"{title} completed!")
+        fwrite(TASKS_PATH, Task.all)
+    else:
+        print(f"Task '{title}' not found")
+
 if __name__ == "__main__":
     app()
