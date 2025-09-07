@@ -3,7 +3,7 @@ from utils.filewriter import filewriter as fwrite
 import json
 import typer
 
-# Setup
+# Setup - reads in previously stored data if available
 USERS_PATH = "data/users.json"
 PROJECTS_PATH = "data/projects.json"
 TASKS_PATH = "data/tasks.json"
