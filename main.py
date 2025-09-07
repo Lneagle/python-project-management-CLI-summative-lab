@@ -1,6 +1,4 @@
-from models.project import Project
-from models.task import Task
-from models.user import User
+from models.classes import User, Project, Task
 from utils.filewriter import filewriter as fwrite
 import json
 import typer
